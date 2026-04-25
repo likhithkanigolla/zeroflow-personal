@@ -1,16 +1,54 @@
-// Update this page (the content is just a fallback if you fail to update the page)
+import { useEffect } from "react";
+import { Navigate, Route, Routes, useLocation } from "react-router-dom";
+import { useSettings } from "@/hooks/useZeroFlow";
+import { db, ensureSettings } from "@/lib/db";
+import Onboarding from "./Onboarding";
+import Dashboard from "./Dashboard";
+import Accounts from "./Accounts";
+import Budget from "./Budget";
+import Cards from "./Cards";
+import Insights from "./Insights";
+import Settings from "./Settings";
+import { BottomNav } from "@/components/BottomNav";
+import { InstallPrompt } from "@/components/InstallPrompt";
 
-// IMPORTANT: Fully REPLACE this with your own code
-const PlaceholderIndex = () => {
-  // PLACEHOLDER: Replace this entire return statement with the user's app.
-  // The inline background color is intentionally not part of the design system.
+export default function Index() {
+  const settings = useSettings();
+  const location = useLocation();
+
+  useEffect(() => { ensureSettings(); }, []);
+  useEffect(() => {
+    if (settings) document.documentElement.classList.toggle("light", settings.theme === "light");
+  }, [settings?.theme]);
+
+  // Block until settings load
+  if (settings === undefined) {
+    return (
+      <div className="min-h-dvh grid place-items-center bg-background">
+        <div className="h-12 w-12 rounded-2xl bg-gradient-primary animate-pulse-soft" />
+      </div>
+    );
+  }
+
+  const onboarded = settings?.onboarded;
+  const isOnboarding = location.pathname === "/onboarding";
+
+  if (!onboarded && !isOnboarding) return <Navigate to="/onboarding" replace />;
+  if (onboarded && isOnboarding) return <Navigate to="/" replace />;
+
   return (
-    <div className="flex min-h-screen items-center justify-center" style={{ backgroundColor: '#fcfbf8' }}>
-      <img data-lovable-blank-page-placeholder="REMOVE_THIS" src="/placeholder.svg" alt="Your app will live here!" />
+    <div className="min-h-dvh">
+      <Routes>
+        <Route path="/onboarding" element={<Onboarding />} />
+        <Route path="/" element={<Dashboard />} />
+        <Route path="/accounts" element={<Accounts />} />
+        <Route path="/budget" element={<Budget />} />
+        <Route path="/cards" element={<Cards />} />
+        <Route path="/insights" element={<Insights />} />
+        <Route path="/settings" element={<Settings />} />
+      </Routes>
+      {onboarded && <BottomNav />}
+      {onboarded && <InstallPrompt />}
     </div>
   );
-};
-
-const Index = PlaceholderIndex;
-
-export default Index;
+}
