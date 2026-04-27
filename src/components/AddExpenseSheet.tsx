@@ -1,4 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
+import { QrScanner } from "./QrScanner";
+import { makeUpiUrl } from "@/lib/upi";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, Wallet, CreditCard as CardIcon } from "lucide-react";
 import { useAccounts, useCards, useCategories } from "@/hooks/useZeroFlow";
@@ -8,6 +10,9 @@ import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 
 export function AddExpenseSheet({ open, onClose }: { open: boolean; onClose: () => void }) {
+  const [showQr, setShowQr] = useState(false);
+  const [upiId, setUpiId] = useState("");
+  const [upiConfirm, setUpiConfirm] = useState(false);
   const accounts = useAccounts();
   const cards = useCards();
   const categories = useCategories();
@@ -21,6 +26,9 @@ export function AddExpenseSheet({ open, onClose }: { open: boolean; onClose: () 
       setAmount(""); setMerchant("");
       setCategoryId(categories[0]?.id);
       setPay(accounts[0] ? { kind: "account", id: accounts[0].id! } : cards[0] ? { kind: "card", id: cards[0].id! } : undefined);
+      setUpiId("");
+      setShowQr(false);
+      setUpiConfirm(false);
     }
   }, [open, categories, accounts, cards]);
 
@@ -37,6 +45,12 @@ export function AddExpenseSheet({ open, onClose }: { open: boolean; onClose: () 
     <AnimatePresence>
       {open && (
         <>
+          {showQr && (
+            <QrScanner
+              onResult={id => { setUpiId(id); setShowQr(false); }}
+              onClose={() => setShowQr(false)}
+            />
+          )}
           <motion.div
             initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
             className="fixed inset-0 z-50 bg-background/70 backdrop-blur-md"
@@ -68,6 +82,41 @@ export function AddExpenseSheet({ open, onClose }: { open: boolean; onClose: () 
                     placeholder="0"
                     className="bg-transparent outline-none text-5xl font-display font-bold num text-center w-44 placeholder:text-muted-foreground/30"
                   />
+                </div>
+                <div className="mt-4 flex flex-col gap-2 items-center">
+                  <button
+                    type="button"
+                    className="px-4 py-2 rounded-xl bg-primary text-primary-foreground font-semibold"
+                    onClick={() => setShowQr(true)}
+                  >
+                    {upiId ? `UPI: ${upiId}` : "Scan UPI QR"}
+                  </button>
+                  {upiId && amt > 0 && (
+                    <button
+                      type="button"
+                      className="px-4 py-2 rounded-xl bg-accent text-accent-foreground font-semibold"
+                      onClick={() => {
+                        const url = makeUpiUrl({ pa: upiId, amount: amt, note: merchant });
+                        window.location.href = url;
+                        setTimeout(() => setUpiConfirm(true), 1000);
+                      }}
+                    >
+                      Pay via UPI
+                    </button>
+                  )}
+                  {upiConfirm && (
+                    <div className="mt-2 flex flex-col items-center gap-2">
+                      <div className="text-xs text-muted-foreground">Did you complete the payment?</div>
+                      <button
+                        className="px-4 py-2 rounded-xl bg-green-600 text-white font-semibold"
+                        onClick={submit}
+                      >Mark as paid & add expense</button>
+                      <button
+                        className="px-4 py-2 rounded-xl bg-secondary text-foreground font-semibold"
+                        onClick={() => setUpiConfirm(false)}
+                      >Cancel</button>
+                    </div>
+                  )}
                 </div>
               </div>
 
