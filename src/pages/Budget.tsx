@@ -1,12 +1,14 @@
 import { useMemo, useState } from "react";
 import { motion } from "framer-motion";
-import { Minus, Plus, ArrowRightLeft, Pencil } from "lucide-react";
+import { Minus, Plus, ArrowRightLeft, Pencil, Sparkles, Trash2 } from "lucide-react";
 import { useCategories } from "@/hooks/useZeroFlow";
 import { db } from "@/lib/db";
 import { reallocate } from "@/lib/finance";
 import { formatMoney } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
+
+const COLOR_TOKENS = ["emerald", "indigo", "sky", "violet", "amber", "rose"] as const;
 
 export default function Budget() {
   const cats = useCategories();
@@ -15,6 +17,10 @@ export default function Budget() {
   const [reallocFrom, setReallocFrom] = useState<number | null>(null);
   const [reallocTo, setReallocTo] = useState<number | null>(null);
   const [reallocAmt, setReallocAmt] = useState("");
+  const [creating, setCreating] = useState(false);
+  const [newName, setNewName] = useState("");
+  const [newAlloc, setNewAlloc] = useState("");
+  const [newColor, setNewColor] = useState<typeof COLOR_TOKENS[number]>("indigo");
 
   const totals = useMemo(() => ({
     allocated: cats.reduce((s, c) => s + c.allocated, 0),
@@ -84,15 +90,24 @@ export default function Budget() {
         })}
       </div>
 
-      <button
-        onClick={() => { setReallocFrom(cats[0]?.id ?? null); setReallocTo(cats[1]?.id ?? null); setReallocAmt(""); }}
-        className="mt-4 w-full glass-card p-4 flex items-center justify-center gap-2 text-sm font-semibold"
-      >
-        <ArrowRightLeft className="h-4 w-4 text-primary" /> Move money between categories
-      </button>
+      <div className="mt-4 grid grid-cols-2 gap-2">
+        <button
+          onClick={() => { setCreating(true); setNewName(""); setNewAlloc(""); setNewColor("indigo"); }}
+          className="glass-card p-4 flex items-center justify-center gap-2 text-sm font-semibold"
+        >
+          <Sparkles className="h-4 w-4 text-accent" /> New category
+        </button>
+        <button
+          onClick={() => { setReallocFrom(cats[0]?.id ?? null); setReallocTo(cats[1]?.id ?? null); setReallocAmt(""); }}
+          className="glass-card p-4 flex items-center justify-center gap-2 text-sm font-semibold"
+        >
+          <ArrowRightLeft className="h-4 w-4 text-primary" /> Move money
+        </button>
+      </div>
 
       {editing !== null && (
         <Modal onClose={() => setEditing(null)} title={`Edit ${cats.find(c => c.id === editing)?.name}`}>
+          <div className="text-xs text-muted-foreground mb-1">Allocation</div>
           <input
             autoFocus value={val} onChange={(e) => setVal(e.target.value.replace(/[^0-9]/g, ""))}
             className="w-full bg-secondary rounded-2xl px-4 py-3 outline-none num text-lg"
@@ -101,6 +116,75 @@ export default function Budget() {
             onClick={async () => { await db.categories.update(editing!, { allocated: Number(val) || 0 }); setEditing(null); toast.success("Updated"); }}
             className="mt-3 w-full py-3 rounded-2xl bg-gradient-primary text-primary-foreground font-semibold"
           >Save</button>
+          <button
+            onClick={async () => {
+              const c = cats.find(c => c.id === editing);
+              if (!c) return;
+              if (c.spent > 0) { toast.error("Can't delete", { description: "This category has spend logged this month." }); return; }
+              await db.categories.delete(editing!);
+              setEditing(null);
+              toast.success("Category deleted");
+            }}
+            className="mt-2 w-full py-3 rounded-2xl bg-secondary text-destructive font-semibold flex items-center justify-center gap-2"
+          ><Trash2 className="h-4 w-4" /> Delete category</button>
+        </Modal>
+      )}
+
+      {creating && (
+        <Modal onClose={() => setCreating(false)} title="New category">
+          <div className="space-y-3">
+            <div>
+              <div className="text-xs text-muted-foreground mb-1">Name</div>
+              <input
+                autoFocus value={newName} onChange={(e) => setNewName(e.target.value)}
+                placeholder="e.g. Coffee, Pet, Gym"
+                className="w-full bg-secondary rounded-2xl px-4 py-3 outline-none"
+              />
+            </div>
+            <div>
+              <div className="text-xs text-muted-foreground mb-1">Monthly allocation</div>
+              <input
+                value={newAlloc} onChange={(e) => setNewAlloc(e.target.value.replace(/[^0-9]/g, ""))}
+                placeholder="0"
+                className="w-full bg-secondary rounded-2xl px-4 py-3 outline-none num text-lg"
+              />
+            </div>
+            <div>
+              <div className="text-xs text-muted-foreground mb-2">Color</div>
+              <div className="flex gap-2">
+                {COLOR_TOKENS.map((c) => (
+                  <button
+                    key={c}
+                    onClick={() => setNewColor(c)}
+                    className={cn(
+                      "h-9 w-9 rounded-full border-2 transition",
+                      newColor === c ? "border-foreground scale-110" : "border-transparent"
+                    )}
+                    style={{ background: `hsl(var(--${c}))` }}
+                    aria-label={c}
+                  />
+                ))}
+              </div>
+            </div>
+          </div>
+          <button
+            onClick={async () => {
+              const name = newName.trim();
+              if (!name) { toast.error("Name required"); return; }
+              if (cats.some(c => c.name.toLowerCase() === name.toLowerCase())) { toast.error("Category already exists"); return; }
+              await db.categories.add({
+                name,
+                icon: "Sparkles",
+                color: newColor,
+                allocated: Number(newAlloc) || 0,
+                spent: 0,
+                rollover: false,
+              });
+              setCreating(false);
+              toast.success("Category added", { description: name });
+            }}
+            className="mt-4 w-full py-3 rounded-2xl bg-gradient-primary text-primary-foreground font-semibold"
+          >Create category</button>
         </Modal>
       )}
 
