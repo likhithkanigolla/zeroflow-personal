@@ -1,12 +1,14 @@
 import { useMemo, useState } from "react";
 import { motion } from "framer-motion";
-import { Minus, Plus, ArrowRightLeft, Pencil } from "lucide-react";
+import { Minus, Plus, ArrowRightLeft, Pencil, Sparkles, Trash2 } from "lucide-react";
 import { useCategories } from "@/hooks/useZeroFlow";
 import { db } from "@/lib/db";
 import { reallocate } from "@/lib/finance";
 import { formatMoney } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
+
+const COLOR_TOKENS = ["emerald", "indigo", "sky", "violet", "amber", "rose"] as const;
 
 export default function Budget() {
   const cats = useCategories();
@@ -15,6 +17,10 @@ export default function Budget() {
   const [reallocFrom, setReallocFrom] = useState<number | null>(null);
   const [reallocTo, setReallocTo] = useState<number | null>(null);
   const [reallocAmt, setReallocAmt] = useState("");
+  const [creating, setCreating] = useState(false);
+  const [newName, setNewName] = useState("");
+  const [newAlloc, setNewAlloc] = useState("");
+  const [newColor, setNewColor] = useState<typeof COLOR_TOKENS[number]>("indigo");
 
   const totals = useMemo(() => ({
     allocated: cats.reduce((s, c) => s + c.allocated, 0),
