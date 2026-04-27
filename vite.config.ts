@@ -6,8 +6,8 @@ import { VitePWA } from "vite-plugin-pwa";
 
 // https://vitejs.dev/config/
 export default defineConfig(({ mode }) => ({
-  // Set base for GitHub Pages deployment
-  base: "/zeroflow-personal/",
+  // Set base for GitHub Pages deployment only in production
+  base: mode === "production" ? "/zeroflow-personal/" : "/",
   server: {
     host: "::",
     port: 8080,
