@@ -1,5 +1,9 @@
 // QR Scanner using html5-qrcode loaded from CDN for Vite compatibility
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
+
+declare global {
+  interface Window { Html5Qrcode?: any }
+}
 
 function loadHtml5QrcodeScript(): Promise<void> {
   return new Promise((resolve, reject) => {
