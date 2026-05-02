@@ -61,6 +61,8 @@ export default function Index() {
         <Route path="/cards" element={<Cards />} />
         <Route path="/insights" element={<Insights />} />
         <Route path="/settings" element={<Settings />} />
+        <Route path="/savings" element={<Savings />} />
+        <Route path="/reimbursements" element={<Reimbursements />} />
       </Routes>
       {onboarded && <BottomNav />}
       {onboarded && <InstallPrompt />}
