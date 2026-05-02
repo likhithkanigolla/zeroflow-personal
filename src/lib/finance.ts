@@ -424,7 +424,7 @@ export function computeTotals(accounts: Account[], cards: CreditCard[], categori
   const spentThisMonth = txns
     .filter((t) => t.date >= since && t.type === "expense")
     .reduce((s, t) => s + t.amount, 0);
-  const savingsCat = categories.find((c) => /sav/i.test(c.name));
-  const savingsLeft = savingsCat ? Math.max(0, savingsCat.allocated - savingsCat.spent) : 0;
+  // Show remaining spendable amount for this month
+  const savingsLeft = Math.max(0, allocated - spentThisMonth);
   return { cash, allocated, outstanding, net: cash - outstanding, spentThisMonth, savingsLeft };
 }

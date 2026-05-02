@@ -68,7 +68,9 @@ export default function Dashboard() {
       <header className="px-5 pt-10 safe-top">
         <div className="flex items-center justify-between mb-2">
           <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">{new Date().toLocaleDateString("en-IN", { month: "long", year: "numeric" })}</p>
-          <Link to="/settings" aria-label="Settings" className="h-9 w-9 rounded-full bg-secondary grid place-items-center"><Bell className="h-4 w-4" /></Link>
+          <Link to="/settings" aria-label="Profile" className="h-9 w-9 rounded-full bg-gradient-primary grid place-items-center text-primary-foreground font-bold text-lg">
+            {settings?.userName ? settings.userName[0].toUpperCase() : <span>U</span>}
+          </Link>
         </div>
         <h1 className="font-display text-3xl font-bold tracking-tight">{greet(settings?.userName ?? "Friend")}</h1>
         <p className="text-muted-foreground text-sm mt-1">Here's where your money stands today.</p>
