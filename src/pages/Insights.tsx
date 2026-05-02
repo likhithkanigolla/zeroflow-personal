@@ -40,9 +40,22 @@ export default function Insights() {
   const cardSpend = txns.filter(t => t.type === "expense" && t.cardId && t.date >= since).reduce((s,t)=>s+t.amount,0);
   const cardDep = thisMonth ? Math.round((cardSpend / thisMonth) * 100) : 0;
 
-  const merchants = new Map<string, number>();
-  txns.filter(t => t.type === "expense" && t.merchant).forEach(t => merchants.set(t.merchant!, (merchants.get(t.merchant!) ?? 0) + t.amount));
-  const topMerchants = Array.from(merchants.entries()).sort((a,b)=>b[1]-a[1]).slice(0,5);
+  const merchantStats = useMemo(() => {
+    const map = new Map<string, { spent: number; count: number; lastDate: number; thisMonth: number }>();
+    for (const t of txns) {
+      if (t.type !== "expense" || !t.merchant) continue;
+      const cur = map.get(t.merchant) ?? { spent: 0, count: 0, lastDate: 0, thisMonth: 0 };
+      cur.spent += t.amount;
+      cur.count += 1;
+      cur.lastDate = Math.max(cur.lastDate, t.date);
+      if (t.date >= since) cur.thisMonth += t.amount;
+      map.set(t.merchant, cur);
+    }
+    return Array.from(map.entries())
+      .map(([name, v]) => ({ name, ...v }))
+      .sort((a, b) => b.spent - a.spent);
+  }, [txns, since]);
+  const topMerchants = merchantStats.slice(0, 8);
 
   return (
     <div className="pb-32 px-5 pt-6 safe-top space-y-4">
