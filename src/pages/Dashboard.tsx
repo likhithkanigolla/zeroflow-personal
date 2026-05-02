@@ -9,6 +9,8 @@ import { formatMoney, greet } from "@/lib/format";
 import { MetricTile } from "@/components/MetricTile";
 import { FloatingAdd } from "@/components/FloatingAdd";
 import { AddExpenseSheet } from "@/components/AddExpenseSheet";
+import { EditTransactionSheet } from "@/components/EditTransactionSheet";
+import type { Transaction } from "@/lib/db";
 import { Link } from "react-router-dom";
 import { PieChart, Pie, Cell, ResponsiveContainer, AreaChart, Area, XAxis, Tooltip, RadialBarChart, RadialBar } from "recharts";
 import { cn } from "@/lib/utils";
@@ -23,6 +25,7 @@ export default function Dashboard() {
   const bills = useRecurringBills();
   const [addOpen, setAddOpen] = useState(false);
   const [syncing, setSyncing] = useState(false);
+  const [editTxn, setEditTxn] = useState<Transaction | null>(null);
 
   const totals = useMemo(() => computeTotals(accounts, cards, cats, txns), [accounts, cards, cats, txns]);
 
@@ -62,10 +65,10 @@ export default function Dashboard() {
   return (
     <div className="pb-32">
       {/* Hero */}
-      <header className="px-5 pt-6 safe-top">
-        <div className="flex items-center justify-between mb-1">
+      <header className="px-5 pt-10 safe-top">
+        <div className="flex items-center justify-between mb-2">
           <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">{new Date().toLocaleDateString("en-IN", { month: "long", year: "numeric" })}</p>
-          <button className="h-9 w-9 rounded-full bg-secondary grid place-items-center"><Bell className="h-4 w-4" /></button>
+          <Link to="/settings" aria-label="Settings" className="h-9 w-9 rounded-full bg-secondary grid place-items-center"><Bell className="h-4 w-4" /></Link>
         </div>
         <h1 className="font-display text-3xl font-bold tracking-tight">{greet(settings?.userName ?? "Friend")}</h1>
         <p className="text-muted-foreground text-sm mt-1">Here's where your money stands today.</p>
