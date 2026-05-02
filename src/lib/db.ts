@@ -72,9 +72,12 @@ export interface SavingsGoal {
 export interface Reimbursement {
   id?: number;
   amount: number;
-  source: string; // who paid back
+  source: string; // who owes / paid back
+  categoryId?: number;
   relatedTxnId?: number;
-  resolved: boolean;
+  linkedTransactionId?: number;
+  status: "pending" | "settled";
+  resolved: boolean; // legacy mirror of status==="settled"
   date: number;
 }
 
@@ -119,6 +122,7 @@ class ZeroFlowDB extends Dexie {
   reimbursements!: Table<Reimbursement, number>;
   recurringBills!: Table<RecurringBill, number>;
   monthlySnapshots!: Table<MonthlySnapshot, number>;
+  savingsGoals!: Table<SavingsGoal, number>;
 
   constructor() {
     super("zeroflow");
@@ -131,6 +135,15 @@ class ZeroFlowDB extends Dexie {
       reimbursements: "++id, date, resolved",
       recurringBills: "++id, dayOfMonth, active",
       monthlySnapshots: "++id, month",
+    });
+    this.version(2).stores({
+      transactions: "++id, date, type, categoryId, accountId, toAccountId, cardId, merchant",
+      reimbursements: "++id, date, resolved, status",
+      savingsGoals: "++id, name, createdAt",
+    }).upgrade(async (tx) => {
+      await tx.table("reimbursements").toCollection().modify((r: any) => {
+        if (!r.status) r.status = r.resolved ? "settled" : "pending";
+      });
     });
   }
 }
@@ -166,6 +179,7 @@ export async function resetAll() {
     db.reimbursements.clear(),
     db.recurringBills.clear(),
     db.monthlySnapshots.clear(),
+    db.savingsGoals.clear(),
   ]);
 }
 
