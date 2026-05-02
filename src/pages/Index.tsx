@@ -20,6 +20,19 @@ export default function Index() {
   useEffect(() => {
     if (settings) document.documentElement.classList.toggle("light", settings.theme === "light");
   }, [settings?.theme]);
+  // Auto-seed Cash Wallet for users onboarded before this feature shipped
+  useEffect(() => {
+    if (!settings?.onboarded) return;
+    (async () => {
+      const all = await db.accounts.toArray();
+      if (!all.some(a => a.type === "cash")) {
+        await db.accounts.add({
+          name: "Cash Wallet", type: "cash", color: "amber",
+          balance: 0, createdAt: Date.now(), updatedAt: Date.now(),
+        });
+      }
+    })();
+  }, [settings?.onboarded]);
 
   // Block until settings load
   if (settings === undefined) {
