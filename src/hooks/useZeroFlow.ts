@@ -27,3 +27,6 @@ export function useReimbursements() {
 export function useRecurringBills() {
   return useLiveQuery(() => db.recurringBills.toArray(), []) ?? [];
 }
+export function useSavingsGoals() {
+  return useLiveQuery(() => db.savingsGoals.orderBy("createdAt").reverse().toArray(), []) ?? [];
+}
