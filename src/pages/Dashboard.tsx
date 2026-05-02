@@ -258,24 +258,42 @@ export default function Dashboard() {
           {recent.map((t) => {
             const cat = cats.find((c) => c.id === t.categoryId);
             const acc = accounts.find((a) => a.id === t.accountId);
+            const toAcc = accounts.find((a) => a.id === t.toAccountId);
             const card = cards.find((c) => c.id === t.cardId);
-            const isIncome = t.amount < 0;
+            const isIncome = t.type === "income";
+            const isTransfer = t.type === "transfer";
+            const isReimb = t.type === "reimbursement";
+            const sign = isIncome || isReimb ? "+" : isTransfer ? "" : "-";
+            const tone = isIncome || isReimb ? "text-primary" : isTransfer ? "text-muted-foreground" : "text-foreground";
             return (
-              <div key={t.id} className="p-3.5 flex items-center gap-3">
+              <button
+                key={t.id}
+                onClick={() => setEditTxn(t)}
+                className="w-full p-3.5 flex items-center gap-3 text-left hover:bg-white/[0.02] transition-colors"
+              >
                 <div className={cn("h-10 w-10 rounded-xl grid place-items-center shrink-0",
-                  isIncome ? "bg-primary/15 text-primary" : `text-foreground`)}
-                  style={!isIncome && cat ? { background: `hsl(var(--${cat.color}) / 0.18)`, color: `hsl(var(--${cat.color}))` } : undefined}
+                  isIncome || isReimb ? "bg-primary/15 text-primary" :
+                  isTransfer ? "bg-secondary text-muted-foreground" : "text-foreground")}
+                  style={!isIncome && !isTransfer && !isReimb && cat ? { background: `hsl(var(--${cat.color}) / 0.18)`, color: `hsl(var(--${cat.color}))` } : undefined}
                 >
-                  {isIncome ? <ArrowDownRight className="h-4 w-4" /> : <span className="text-xs font-bold">{(cat?.name ?? "?")[0]}</span>}
+                  {isIncome || isReimb ? <ArrowDownRight className="h-4 w-4" /> :
+                   isTransfer ? <ArrowUpRight className="h-4 w-4" /> :
+                   <span className="text-xs font-bold">{(cat?.name ?? "?")[0]}</span>}
                 </div>
                 <div className="min-w-0 flex-1">
-                  <div className="font-medium truncate">{t.merchant || cat?.name || (isIncome ? "Income" : "Expense")}</div>
+                  <div className="font-medium truncate">
+                    {isTransfer ? `${acc?.name ?? "—"} → ${toAcc?.name ?? "—"}` :
+                     isReimb ? `Reimbursement · ${t.notes?.replace("Reimbursement from ", "") ?? ""}` :
+                     (t.merchant || cat?.name || (isIncome ? "Income" : "Expense"))}
+                  </div>
                   <div className="text-[11px] text-muted-foreground truncate">
-                    {new Date(t.date).toLocaleDateString("en-IN", { day: "numeric", month: "short" })} · {acc?.name ?? card?.name ?? "—"}
+                    {new Date(t.date).toLocaleDateString("en-IN", { day: "numeric", month: "short" })}
+                    {!isTransfer && ` · ${acc?.name ?? card?.name ?? "—"}`}
+                    {t.isShared && " · split"}
                   </div>
                 </div>
-                <div className={cn("font-semibold num text-sm", isIncome ? "text-primary" : "text-foreground")}>{isIncome ? "+" : "-"}{formatMoney(Math.abs(t.amount))}</div>
-              </div>
+                <div className={cn("font-semibold num text-sm", tone)}>{sign}{formatMoney(Math.abs(t.amount))}</div>
+              </button>
             );
           })}
         </div>
