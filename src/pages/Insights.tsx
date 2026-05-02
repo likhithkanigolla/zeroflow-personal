@@ -112,16 +112,21 @@ export default function Insights() {
           </div>
         </Section>
 
-        <Section title="Top merchants" subtitle="All time">
+        <Section title="Top merchants" subtitle="This month vs all time">
           <div className="space-y-2 mt-1">
             {topMerchants.length === 0 && <p className="text-sm text-muted-foreground">Add merchant names to expenses to see this.</p>}
-            {topMerchants.map(([name, amt], i) => (
-              <div key={name} className="flex items-center justify-between text-sm">
-                <div className="flex items-center gap-2">
-                  <span className="h-6 w-6 rounded-full bg-secondary grid place-items-center text-[10px] font-bold text-muted-foreground">{i+1}</span>
-                  <span className="truncate">{name}</span>
+            {topMerchants.map((m, i) => (
+              <div key={m.name} className="flex items-center justify-between text-sm gap-2">
+                <div className="flex items-center gap-2 min-w-0">
+                  <span className="h-7 w-7 rounded-full bg-gradient-accent grid place-items-center text-[11px] font-bold text-accent-foreground shrink-0">
+                    {m.name[0]?.toUpperCase()}
+                  </span>
+                  <div className="min-w-0">
+                    <div className="truncate font-medium">{m.name}</div>
+                    <div className="text-[10px] text-muted-foreground">{m.count} txn{m.count > 1 ? "s" : ""} · this mo {formatMoney(m.thisMonth, "₹", true)}</div>
+                  </div>
                 </div>
-                <span className="num font-semibold">{formatMoney(amt, "₹", true)}</span>
+                <span className="num font-semibold shrink-0">{formatMoney(m.spent, "₹", true)}</span>
               </div>
             ))}
           </div>
