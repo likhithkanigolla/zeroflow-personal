@@ -185,7 +185,7 @@ export async function resetAll() {
 
 export async function exportBackup(): Promise<string> {
   const data = {
-    version: 1,
+    version: 2,
     exportedAt: Date.now(),
     settings: await db.settings.toArray(),
     accounts: await db.accounts.toArray(),
@@ -195,6 +195,7 @@ export async function exportBackup(): Promise<string> {
     reimbursements: await db.reimbursements.toArray(),
     recurringBills: await db.recurringBills.toArray(),
     monthlySnapshots: await db.monthlySnapshots.toArray(),
+    savingsGoals: await db.savingsGoals.toArray(),
   };
   return JSON.stringify(data, null, 2);
 }
@@ -204,7 +205,7 @@ export async function importBackup(json: string) {
   await resetAll();
   await db.transaction(
     "rw",
-    [db.settings, db.accounts, db.creditCards, db.categories, db.transactions, db.reimbursements, db.recurringBills, db.monthlySnapshots],
+    [db.settings, db.accounts, db.creditCards, db.categories, db.transactions, db.reimbursements, db.recurringBills, db.monthlySnapshots, db.savingsGoals],
     async () => {
       if (data.settings?.length) await db.settings.bulkAdd(data.settings);
       if (data.accounts?.length) await db.accounts.bulkAdd(data.accounts);
@@ -214,6 +215,7 @@ export async function importBackup(json: string) {
       if (data.reimbursements?.length) await db.reimbursements.bulkAdd(data.reimbursements);
       if (data.recurringBills?.length) await db.recurringBills.bulkAdd(data.recurringBills);
       if (data.monthlySnapshots?.length) await db.monthlySnapshots.bulkAdd(data.monthlySnapshots);
+      if (data.savingsGoals?.length) await db.savingsGoals.bulkAdd(data.savingsGoals);
     }
   );
 }
