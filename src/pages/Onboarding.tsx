@@ -41,6 +41,14 @@ export default function Onboarding() {
 
   const finish = async () => {
     const s = await ensureSettings();
+    // Seed default Cash Wallet if user hasn't added one
+    const all = await db.accounts.toArray();
+    if (!all.some(a => a.type === "cash")) {
+      await db.accounts.add({
+        name: "Cash Wallet", type: "cash", color: "amber",
+        balance: 0, createdAt: Date.now(), updatedAt: Date.now(),
+      });
+    }
     await db.settings.update(s.id!, { userName: name.trim() || "Friend", onboarded: true });
     toast.success("Welcome to ZeroFlow");
     nav("/", { replace: true });

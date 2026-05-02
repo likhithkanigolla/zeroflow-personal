@@ -9,6 +9,8 @@ import { formatMoney, greet } from "@/lib/format";
 import { MetricTile } from "@/components/MetricTile";
 import { FloatingAdd } from "@/components/FloatingAdd";
 import { AddExpenseSheet } from "@/components/AddExpenseSheet";
+import { EditTransactionSheet } from "@/components/EditTransactionSheet";
+import type { Transaction } from "@/lib/db";
 import { Link } from "react-router-dom";
 import { PieChart, Pie, Cell, ResponsiveContainer, AreaChart, Area, XAxis, Tooltip, RadialBarChart, RadialBar } from "recharts";
 import { cn } from "@/lib/utils";
@@ -23,6 +25,7 @@ export default function Dashboard() {
   const bills = useRecurringBills();
   const [addOpen, setAddOpen] = useState(false);
   const [syncing, setSyncing] = useState(false);
+  const [editTxn, setEditTxn] = useState<Transaction | null>(null);
 
   const totals = useMemo(() => computeTotals(accounts, cards, cats, txns), [accounts, cards, cats, txns]);
 
@@ -62,10 +65,10 @@ export default function Dashboard() {
   return (
     <div className="pb-32">
       {/* Hero */}
-      <header className="px-5 pt-6 safe-top">
-        <div className="flex items-center justify-between mb-1">
+      <header className="px-5 pt-10 safe-top">
+        <div className="flex items-center justify-between mb-2">
           <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">{new Date().toLocaleDateString("en-IN", { month: "long", year: "numeric" })}</p>
-          <button className="h-9 w-9 rounded-full bg-secondary grid place-items-center"><Bell className="h-4 w-4" /></button>
+          <Link to="/settings" aria-label="Settings" className="h-9 w-9 rounded-full bg-secondary grid place-items-center"><Bell className="h-4 w-4" /></Link>
         </div>
         <h1 className="font-display text-3xl font-bold tracking-tight">{greet(settings?.userName ?? "Friend")}</h1>
         <p className="text-muted-foreground text-sm mt-1">Here's where your money stands today.</p>
@@ -255,24 +258,42 @@ export default function Dashboard() {
           {recent.map((t) => {
             const cat = cats.find((c) => c.id === t.categoryId);
             const acc = accounts.find((a) => a.id === t.accountId);
+            const toAcc = accounts.find((a) => a.id === t.toAccountId);
             const card = cards.find((c) => c.id === t.cardId);
-            const isIncome = t.amount < 0;
+            const isIncome = t.type === "income";
+            const isTransfer = t.type === "transfer";
+            const isReimb = t.type === "reimbursement";
+            const sign = isIncome || isReimb ? "+" : isTransfer ? "" : "-";
+            const tone = isIncome || isReimb ? "text-primary" : isTransfer ? "text-muted-foreground" : "text-foreground";
             return (
-              <div key={t.id} className="p-3.5 flex items-center gap-3">
+              <button
+                key={t.id}
+                onClick={() => setEditTxn(t)}
+                className="w-full p-3.5 flex items-center gap-3 text-left hover:bg-white/[0.02] transition-colors"
+              >
                 <div className={cn("h-10 w-10 rounded-xl grid place-items-center shrink-0",
-                  isIncome ? "bg-primary/15 text-primary" : `text-foreground`)}
-                  style={!isIncome && cat ? { background: `hsl(var(--${cat.color}) / 0.18)`, color: `hsl(var(--${cat.color}))` } : undefined}
+                  isIncome || isReimb ? "bg-primary/15 text-primary" :
+                  isTransfer ? "bg-secondary text-muted-foreground" : "text-foreground")}
+                  style={!isIncome && !isTransfer && !isReimb && cat ? { background: `hsl(var(--${cat.color}) / 0.18)`, color: `hsl(var(--${cat.color}))` } : undefined}
                 >
-                  {isIncome ? <ArrowDownRight className="h-4 w-4" /> : <span className="text-xs font-bold">{(cat?.name ?? "?")[0]}</span>}
+                  {isIncome || isReimb ? <ArrowDownRight className="h-4 w-4" /> :
+                   isTransfer ? <ArrowUpRight className="h-4 w-4" /> :
+                   <span className="text-xs font-bold">{(cat?.name ?? "?")[0]}</span>}
                 </div>
                 <div className="min-w-0 flex-1">
-                  <div className="font-medium truncate">{t.merchant || cat?.name || (isIncome ? "Income" : "Expense")}</div>
+                  <div className="font-medium truncate">
+                    {isTransfer ? `${acc?.name ?? "—"} → ${toAcc?.name ?? "—"}` :
+                     isReimb ? `Reimbursement · ${t.notes?.replace("Reimbursement from ", "") ?? ""}` :
+                     (t.merchant || cat?.name || (isIncome ? "Income" : "Expense"))}
+                  </div>
                   <div className="text-[11px] text-muted-foreground truncate">
-                    {new Date(t.date).toLocaleDateString("en-IN", { day: "numeric", month: "short" })} · {acc?.name ?? card?.name ?? "—"}
+                    {new Date(t.date).toLocaleDateString("en-IN", { day: "numeric", month: "short" })}
+                    {!isTransfer && ` · ${acc?.name ?? card?.name ?? "—"}`}
+                    {t.isShared && " · split"}
                   </div>
                 </div>
-                <div className={cn("font-semibold num text-sm", isIncome ? "text-primary" : "text-foreground")}>{isIncome ? "+" : "-"}{formatMoney(Math.abs(t.amount))}</div>
-              </div>
+                <div className={cn("font-semibold num text-sm", tone)}>{sign}{formatMoney(Math.abs(t.amount))}</div>
+              </button>
             );
           })}
         </div>
@@ -280,15 +301,15 @@ export default function Dashboard() {
 
       {/* Quick actions */}
       <section className="px-5 mt-6 grid grid-cols-2 gap-3">
-        <button onClick={() => setAddOpen(true)} className="glass-card p-4 flex items-center gap-3 text-left">
-          <div className="h-10 w-10 rounded-xl bg-gradient-primary grid place-items-center text-primary-foreground"><Zap className="h-5 w-5" /></div>
+        <Link to="/reimbursements" className="glass-card p-4 flex items-center gap-3 text-left">
+          <div className="h-10 w-10 rounded-xl bg-gradient-accent grid place-items-center text-accent-foreground"><ArrowDownRight className="h-5 w-5" /></div>
           <div>
-            <div className="font-semibold text-sm">Quick add</div>
-            <div className="text-xs text-muted-foreground">Log an expense</div>
+            <div className="font-semibold text-sm">Reimbursements</div>
+            <div className="text-xs text-muted-foreground">Money owed to you</div>
           </div>
-        </button>
+        </Link>
         <button onClick={onSync} className="glass-card p-4 flex items-center gap-3 text-left">
-          <div className="h-10 w-10 rounded-xl bg-gradient-accent grid place-items-center text-accent-foreground"><RefreshCw className={cn("h-5 w-5", syncing && "animate-spin")} /></div>
+          <div className="h-10 w-10 rounded-xl bg-gradient-primary grid place-items-center text-primary-foreground"><RefreshCw className={cn("h-5 w-5", syncing && "animate-spin")} /></div>
           <div>
             <div className="font-semibold text-sm">Sync</div>
             <div className="text-xs text-muted-foreground">Recompute totals</div>
@@ -298,6 +319,7 @@ export default function Dashboard() {
 
       <FloatingAdd onClick={() => setAddOpen(true)} />
       <AddExpenseSheet open={addOpen} onClose={() => setAddOpen(false)} />
+      <EditTransactionSheet txn={editTxn} onClose={() => setEditTxn(null)} />
     </div>
   );
 }

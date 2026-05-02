@@ -40,9 +40,22 @@ export default function Insights() {
   const cardSpend = txns.filter(t => t.type === "expense" && t.cardId && t.date >= since).reduce((s,t)=>s+t.amount,0);
   const cardDep = thisMonth ? Math.round((cardSpend / thisMonth) * 100) : 0;
 
-  const merchants = new Map<string, number>();
-  txns.filter(t => t.type === "expense" && t.merchant).forEach(t => merchants.set(t.merchant!, (merchants.get(t.merchant!) ?? 0) + t.amount));
-  const topMerchants = Array.from(merchants.entries()).sort((a,b)=>b[1]-a[1]).slice(0,5);
+  const merchantStats = useMemo(() => {
+    const map = new Map<string, { spent: number; count: number; lastDate: number; thisMonth: number }>();
+    for (const t of txns) {
+      if (t.type !== "expense" || !t.merchant) continue;
+      const cur = map.get(t.merchant) ?? { spent: 0, count: 0, lastDate: 0, thisMonth: 0 };
+      cur.spent += t.amount;
+      cur.count += 1;
+      cur.lastDate = Math.max(cur.lastDate, t.date);
+      if (t.date >= since) cur.thisMonth += t.amount;
+      map.set(t.merchant, cur);
+    }
+    return Array.from(map.entries())
+      .map(([name, v]) => ({ name, ...v }))
+      .sort((a, b) => b.spent - a.spent);
+  }, [txns, since]);
+  const topMerchants = merchantStats.slice(0, 8);
 
   return (
     <div className="pb-32 px-5 pt-6 safe-top space-y-4">
@@ -99,16 +112,21 @@ export default function Insights() {
           </div>
         </Section>
 
-        <Section title="Top merchants" subtitle="All time">
+        <Section title="Top merchants" subtitle="This month vs all time">
           <div className="space-y-2 mt-1">
             {topMerchants.length === 0 && <p className="text-sm text-muted-foreground">Add merchant names to expenses to see this.</p>}
-            {topMerchants.map(([name, amt], i) => (
-              <div key={name} className="flex items-center justify-between text-sm">
-                <div className="flex items-center gap-2">
-                  <span className="h-6 w-6 rounded-full bg-secondary grid place-items-center text-[10px] font-bold text-muted-foreground">{i+1}</span>
-                  <span className="truncate">{name}</span>
+            {topMerchants.map((m, i) => (
+              <div key={m.name} className="flex items-center justify-between text-sm gap-2">
+                <div className="flex items-center gap-2 min-w-0">
+                  <span className="h-7 w-7 rounded-full bg-gradient-accent grid place-items-center text-[11px] font-bold text-accent-foreground shrink-0">
+                    {m.name[0]?.toUpperCase()}
+                  </span>
+                  <div className="min-w-0">
+                    <div className="truncate font-medium">{m.name}</div>
+                    <div className="text-[10px] text-muted-foreground">{m.count} txn{m.count > 1 ? "s" : ""} · this mo {formatMoney(m.thisMonth, "₹", true)}</div>
+                  </div>
                 </div>
-                <span className="num font-semibold">{formatMoney(amt, "₹", true)}</span>
+                <span className="num font-semibold shrink-0">{formatMoney(m.spent, "₹", true)}</span>
               </div>
             ))}
           </div>

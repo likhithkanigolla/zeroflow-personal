@@ -9,6 +9,8 @@ import Budget from "./Budget";
 import Cards from "./Cards";
 import Insights from "./Insights";
 import Settings from "./Settings";
+import Savings from "./Savings";
+import Reimbursements from "./Reimbursements";
 import { BottomNav } from "@/components/BottomNav";
 import { InstallPrompt } from "@/components/InstallPrompt";
 
@@ -20,6 +22,19 @@ export default function Index() {
   useEffect(() => {
     if (settings) document.documentElement.classList.toggle("light", settings.theme === "light");
   }, [settings?.theme]);
+  // Auto-seed Cash Wallet for users onboarded before this feature shipped
+  useEffect(() => {
+    if (!settings?.onboarded) return;
+    (async () => {
+      const all = await db.accounts.toArray();
+      if (!all.some(a => a.type === "cash")) {
+        await db.accounts.add({
+          name: "Cash Wallet", type: "cash", color: "amber",
+          balance: 0, createdAt: Date.now(), updatedAt: Date.now(),
+        });
+      }
+    })();
+  }, [settings?.onboarded]);
 
   // Block until settings load
   if (settings === undefined) {
@@ -46,6 +61,8 @@ export default function Index() {
         <Route path="/cards" element={<Cards />} />
         <Route path="/insights" element={<Insights />} />
         <Route path="/settings" element={<Settings />} />
+        <Route path="/savings" element={<Savings />} />
+        <Route path="/reimbursements" element={<Reimbursements />} />
       </Routes>
       {onboarded && <BottomNav />}
       {onboarded && <InstallPrompt />}

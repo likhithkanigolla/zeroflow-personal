@@ -1,13 +1,13 @@
 import { NavLink, useLocation } from "react-router-dom";
-import { Home, Wallet, PieChart, Sparkles, Settings as SettingsIcon } from "lucide-react";
+import { Home, Wallet, PieChart, Target, Sparkles } from "lucide-react";
 import { motion } from "framer-motion";
 
 const items = [
   { to: "/", label: "Home", icon: Home },
   { to: "/accounts", label: "Accounts", icon: Wallet },
   { to: "/budget", label: "Budget", icon: PieChart },
+  { to: "/savings", label: "Savings", icon: Target },
   { to: "/insights", label: "Insights", icon: Sparkles },
-  { to: "/settings", label: "Settings", icon: SettingsIcon },
 ];
 
 export function BottomNav() {

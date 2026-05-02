@@ -35,25 +35,49 @@ export interface Category {
 
 export type PayMethod = { kind: "account"; id: number } | { kind: "card"; id: number };
 
+export interface SplitMeta {
+  totalAmount: number;
+  participants: number; // total people including user
+  userShare: number;
+  othersShare: number;
+}
+
 export interface Transaction {
   id?: number;
-  amount: number; // positive=expense, negative=income
+  amount: number; // positive=expense, negative=income; for transfer = absolute moved amount
   type: "expense" | "income" | "transfer" | "cardPayment" | "reimbursement";
   categoryId?: number;
-  accountId?: number;
+  accountId?: number;       // source account (for transfer = FROM)
+  toAccountId?: number;     // destination account (transfer only)
   cardId?: number;
   merchant?: string;
   notes?: string;
+  isShared?: boolean;
+  splitMeta?: SplitMeta;
   date: number;
+  createdAt: number;
+}
+
+export interface SavingsGoal {
+  id?: number;
+  name: string;
+  targetAmount: number;
+  allocatedAmount: number;
+  color: string;
+  icon?: string;
+  fromAccountId?: number;
   createdAt: number;
 }
 
 export interface Reimbursement {
   id?: number;
   amount: number;
-  source: string; // who paid back
+  source: string; // who owes / paid back
+  categoryId?: number;
   relatedTxnId?: number;
-  resolved: boolean;
+  linkedTransactionId?: number;
+  status: "pending" | "settled";
+  resolved: boolean; // legacy mirror of status==="settled"
   date: number;
 }
 
@@ -98,6 +122,7 @@ class ZeroFlowDB extends Dexie {
   reimbursements!: Table<Reimbursement, number>;
   recurringBills!: Table<RecurringBill, number>;
   monthlySnapshots!: Table<MonthlySnapshot, number>;
+  savingsGoals!: Table<SavingsGoal, number>;
 
   constructor() {
     super("zeroflow");
@@ -110,6 +135,15 @@ class ZeroFlowDB extends Dexie {
       reimbursements: "++id, date, resolved",
       recurringBills: "++id, dayOfMonth, active",
       monthlySnapshots: "++id, month",
+    });
+    this.version(2).stores({
+      transactions: "++id, date, type, categoryId, accountId, toAccountId, cardId, merchant",
+      reimbursements: "++id, date, resolved, status",
+      savingsGoals: "++id, name, createdAt",
+    }).upgrade(async (tx) => {
+      await tx.table("reimbursements").toCollection().modify((r: any) => {
+        if (!r.status) r.status = r.resolved ? "settled" : "pending";
+      });
     });
   }
 }
@@ -145,12 +179,13 @@ export async function resetAll() {
     db.reimbursements.clear(),
     db.recurringBills.clear(),
     db.monthlySnapshots.clear(),
+    db.savingsGoals.clear(),
   ]);
 }
 
 export async function exportBackup(): Promise<string> {
   const data = {
-    version: 1,
+    version: 2,
     exportedAt: Date.now(),
     settings: await db.settings.toArray(),
     accounts: await db.accounts.toArray(),
@@ -160,6 +195,7 @@ export async function exportBackup(): Promise<string> {
     reimbursements: await db.reimbursements.toArray(),
     recurringBills: await db.recurringBills.toArray(),
     monthlySnapshots: await db.monthlySnapshots.toArray(),
+    savingsGoals: await db.savingsGoals.toArray(),
   };
   return JSON.stringify(data, null, 2);
 }
@@ -169,7 +205,7 @@ export async function importBackup(json: string) {
   await resetAll();
   await db.transaction(
     "rw",
-    [db.settings, db.accounts, db.creditCards, db.categories, db.transactions, db.reimbursements, db.recurringBills, db.monthlySnapshots],
+    [db.settings, db.accounts, db.creditCards, db.categories, db.transactions, db.reimbursements, db.recurringBills, db.monthlySnapshots, db.savingsGoals],
     async () => {
       if (data.settings?.length) await db.settings.bulkAdd(data.settings);
       if (data.accounts?.length) await db.accounts.bulkAdd(data.accounts);
@@ -179,6 +215,7 @@ export async function importBackup(json: string) {
       if (data.reimbursements?.length) await db.reimbursements.bulkAdd(data.reimbursements);
       if (data.recurringBills?.length) await db.recurringBills.bulkAdd(data.recurringBills);
       if (data.monthlySnapshots?.length) await db.monthlySnapshots.bulkAdd(data.monthlySnapshots);
+      if (data.savingsGoals?.length) await db.savingsGoals.bulkAdd(data.savingsGoals);
     }
   );
 }
