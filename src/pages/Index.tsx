@@ -9,6 +9,8 @@ import Budget from "./Budget";
 import Cards from "./Cards";
 import Insights from "./Insights";
 import Settings from "./Settings";
+import Savings from "./Savings";
+import Reimbursements from "./Reimbursements";
 import { BottomNav } from "@/components/BottomNav";
 import { InstallPrompt } from "@/components/InstallPrompt";
 
