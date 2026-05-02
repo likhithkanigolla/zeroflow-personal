@@ -301,15 +301,15 @@ export default function Dashboard() {
 
       {/* Quick actions */}
       <section className="px-5 mt-6 grid grid-cols-2 gap-3">
-        <button onClick={() => setAddOpen(true)} className="glass-card p-4 flex items-center gap-3 text-left">
-          <div className="h-10 w-10 rounded-xl bg-gradient-primary grid place-items-center text-primary-foreground"><Zap className="h-5 w-5" /></div>
+        <Link to="/reimbursements" className="glass-card p-4 flex items-center gap-3 text-left">
+          <div className="h-10 w-10 rounded-xl bg-gradient-accent grid place-items-center text-accent-foreground"><ArrowDownRight className="h-5 w-5" /></div>
           <div>
-            <div className="font-semibold text-sm">Quick add</div>
-            <div className="text-xs text-muted-foreground">Log an expense</div>
+            <div className="font-semibold text-sm">Reimbursements</div>
+            <div className="text-xs text-muted-foreground">Money owed to you</div>
           </div>
-        </button>
+        </Link>
         <button onClick={onSync} className="glass-card p-4 flex items-center gap-3 text-left">
-          <div className="h-10 w-10 rounded-xl bg-gradient-accent grid place-items-center text-accent-foreground"><RefreshCw className={cn("h-5 w-5", syncing && "animate-spin")} /></div>
+          <div className="h-10 w-10 rounded-xl bg-gradient-primary grid place-items-center text-primary-foreground"><RefreshCw className={cn("h-5 w-5", syncing && "animate-spin")} /></div>
           <div>
             <div className="font-semibold text-sm">Sync</div>
             <div className="text-xs text-muted-foreground">Recompute totals</div>
@@ -319,6 +319,7 @@ export default function Dashboard() {
 
       <FloatingAdd onClick={() => setAddOpen(true)} />
       <AddExpenseSheet open={addOpen} onClose={() => setAddOpen(false)} />
+      <EditTransactionSheet txn={editTxn} onClose={() => setEditTxn(null)} />
     </div>
   );
 }
