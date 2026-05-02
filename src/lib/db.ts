@@ -35,16 +35,37 @@ export interface Category {
 
 export type PayMethod = { kind: "account"; id: number } | { kind: "card"; id: number };
 
+export interface SplitMeta {
+  totalAmount: number;
+  participants: number; // total people including user
+  userShare: number;
+  othersShare: number;
+}
+
 export interface Transaction {
   id?: number;
-  amount: number; // positive=expense, negative=income
+  amount: number; // positive=expense, negative=income; for transfer = absolute moved amount
   type: "expense" | "income" | "transfer" | "cardPayment" | "reimbursement";
   categoryId?: number;
-  accountId?: number;
+  accountId?: number;       // source account (for transfer = FROM)
+  toAccountId?: number;     // destination account (transfer only)
   cardId?: number;
   merchant?: string;
   notes?: string;
+  isShared?: boolean;
+  splitMeta?: SplitMeta;
   date: number;
+  createdAt: number;
+}
+
+export interface SavingsGoal {
+  id?: number;
+  name: string;
+  targetAmount: number;
+  allocatedAmount: number;
+  color: string;
+  icon?: string;
+  fromAccountId?: number;
   createdAt: number;
 }
 
